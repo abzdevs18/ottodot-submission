@@ -1,0 +1,150 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
+}
+
+enum UserRole {
+  STUDENT
+  TEACHER
+  ADMIN
+}
+
+enum DifficultyLevel {
+  EASY
+  MEDIUM
+  HARD
+}
+
+enum BadgeType {
+  STREAK_MASTER        // 5 correct in a row
+  PERSISTENCE          // 10 attempts in one session
+  PERFECTIONIST        // 10 problems with 100% accuracy
+  QUICK_SOLVER         // Solve 5 problems in under 10 minutes
+  MATH_GENIUS          // Solve 50 problems total
+}
+
+model User {
+  id                String                   @id @default(uuid())
+  email             String                   @unique
+  password          String
+  name              String
+  role              UserRole                 @default(STUDENT)
+  createdAt         DateTime                 @default(now()) @map("created_at")
+  updatedAt         DateTime                 @updatedAt @map("updated_at")
+  
+  // Relations
+  sessions          MathProblemSession[]
+  submissions       MathProblemSubmission[]
+  userBadges        UserBadge[]
+  progressRecords   UserProgress[]
+  
+  @@map("users")
+}
+
+model MathProblemSession {
+  id                String                    @id @default(uuid())
+  userId            String                    @map("user_id")
+  problemText       String                    @map("problem_text") @db.Text
+  correctAnswer     Float                     @map("correct_answer")
+  difficultyLevel   DifficultyLevel           @default(MEDIUM) @map("difficulty_level")
+  jobId             String?                   @map("job_id") // BullMQ job ID
+  jobStatus         String?                   @map("job_status") // pending, completed, failed
+  createdAt         DateTime                  @default(now()) @map("created_at")
+  
+  // Relations
+  user              User                      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  submissions       MathProblemSubmission[]
+  
+  @@index([userId])
+  @@index([createdAt])
+  @@map("math_problem_sessions")
+}
+
+model MathProblemSubmission {
+  id                String                @id @default(uuid())
+  sessionId         String                @map("session_id")
+  userId            String                @map("user_id")
+  userAnswer        Float                 @map("user_answer")
+  isCorrect         Boolean               @map("is_correct")
+  feedbackText      String                @map("feedback_text") @db.Text
+  timeTaken         Int?                  @map("time_taken") // in seconds
+  createdAt         DateTime              @default(now()) @map("created_at")
+  
+  // Relations
+  session           MathProblemSession    @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  user              User                  @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  @@index([sessionId])
+  @@index([userId])
+  @@index([createdAt])
+  @@map("math_problem_submissions")
+}
+
+model Badge {
+  id                String                @id @default(uuid())
+  name              String                @unique
+  description       String                @db.Text
+  badgeType         BadgeType             @map("badge_type")
+  iconUrl           String?               @map("icon_url")
+  createdAt         DateTime              @default(now()) @map("created_at")
+  
+  // Relations
+  userBadges        UserBadge[]
+  
+  @@map("badges")
+}
+
+model UserBadge {
+  id                String                @id @default(uuid())
+  userId            String                @map("user_id")
+  badgeId           String                @map("badge_id")
+  earnedAt          DateTime              @default(now()) @map("earned_at")
+  
+  // Relations
+  user              User                  @relation(fields: [userId], references: [id], onDelete: Cascade)
+  badge             Badge                 @relation(fields: [badgeId], references: [id], onDelete: Cascade)
+  
+  @@unique([userId, badgeId])
+  @@index([userId])
+  @@map("user_badges")
+}
+
+model UserProgress {
+  id                String                @id @default(uuid())
+  userId            String                @map("user_id")
+  totalProblems     Int                   @default(0) @map("total_problems")
+  correctProblems   Int                   @default(0) @map("correct_problems")
+  currentStreak     Int                   @default(0) @map("current_streak")
+  longestStreak     Int                   @default(0) @map("longest_streak")
+  totalTimeTaken    Int                   @default(0) @map("total_time_taken") // in seconds
+  lastFiveResults   String[]              @default([]) @map("last_five_results") // array of "correct" or "incorrect"
+  currentDifficulty DifficultyLevel       @default(MEDIUM) @map("current_difficulty")
+  createdAt         DateTime              @default(now()) @map("created_at")
+  updatedAt         DateTime              @updatedAt @map("updated_at")
+  
+  // Relations
+  user              User                  @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  @@unique([userId])
+  @@map("user_progress")
+}
+
+model SystemLog {
+  id                String                @id @default(uuid())
+  level             String                // info, warning, error
+  message           String                @db.Text
+  metadata          Json?                 // Additional context data
+  createdAt         DateTime              @default(now()) @map("created_at")
+  
+  @@index([level])
+  @@index([createdAt])
+  @@map("system_logs")
+}
