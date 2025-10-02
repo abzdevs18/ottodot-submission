@@ -10,7 +10,7 @@ const PORT = 3001
 const httpServer = createServer()
 const io = new Server(httpServer, {
   cors: {
-    origin: 'http://localhost:3000',
+    origin: '*',
     credentials: true,
   },
 })
