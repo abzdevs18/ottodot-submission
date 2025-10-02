@@ -5,7 +5,7 @@ dotenv.config()
 import { createServer } from 'http'
 import { Server } from 'socket.io'
 
-const PORT = 3001
+const PORT = 3011
 
 const httpServer = createServer()
 const io = new Server(httpServer, {

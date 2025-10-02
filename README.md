@@ -75,8 +75,10 @@ REDIS_PASSWORD=xxx
 # JWT Secret (Pre-configured)
 JWT_SECRET=xxx
 
-# Socket.IO (Pre-configured)
-NEXT_PUBLIC_SOCKET_URL=http://localhost:3000
+# Socket.IO (Optional - defaults to http://localhost:3011)
+# NEXT_PUBLIC_SOCKET_URL=http://localhost:3011
+# For production, set to your socket server URL:
+# NEXT_PUBLIC_SOCKET_URL=https://socket.academicwebsolution.com
 ```
 
 **Get Your Own Claude API Key (Optional):**
